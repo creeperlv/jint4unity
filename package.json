@@ -1,0 +1,16 @@
+{
+  "name": "io.creeperlv.jint4unity",
+  "version": "1.0.0",
+  "displayName": "jint4unity",
+  "description": "jint, extracted from NuGet",
+  "unity": "6000.0",
+  "unityRelease": "1f1",
+ "keywords": [
+    "JavaScript"
+  ],
+  "author": {
+    "name": "Creeper Lv",
+    "url": "https://creeperlv.github.io"
+  }
+}
+
