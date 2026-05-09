@@ -86,6 +86,11 @@
             Adds a new item and expects key to not exist.
             </summary>
         </member>
+        <member name="T:Jint.Collections.ObjectTraverseStackPool">
+            <summary>
+            Cache reusable <see cref="T:Jint.Runtime.Reference" /> instances as we allocate them a lot.
+            </summary>
+        </member>
         <member name="T:Jint.Collections.ObjectTraverseStack">
             <summary>
             Helps traversing objects and checks for cyclic references.
@@ -319,6 +324,12 @@
         <member name="M:Jint.Engine.ConstraintOperations.Reset">
             <summary>
             Resets all execution constraints back to their initial state.
+            </summary>
+        </member>
+        <member name="F:Jint.Engine.ModuleAsyncEvaluationCount">
+            <summary>
+            https://tc39.es/ecma262/#sec-IncrementModuleAsyncEvaluationCount
+            Agent-level counter for module async evaluation ordering.
             </summary>
         </member>
         <member name="M:Jint.Engine.#ctor">
@@ -614,6 +625,34 @@
             <param name="constructor">The name of the constructor to call.</param>
             <param name="arguments">The arguments of the constructor call.</param>
             <returns>The value returned by the constructor call.</returns>
+        </member>
+        <member name="F:Jint.Engine.ValidateRegExpHandler">
+            <summary>
+            OnRegExp callback that validates regex syntax at parse time without converting.
+            Conversion is done at runtime in RegExpInitialize with fallback to the custom engine.
+            </summary>
+        </member>
+        <member name="F:Jint.Engine.ConvertRegExpHandler">
+            <summary>
+            OnRegExp callback that validates and converts regex at parse time (interpreted .NET Regex).
+            Used during script/module preparation when CompileRegex is false.
+            </summary>
+        </member>
+        <member name="F:Jint.Engine.CompileRegExpHandler">
+            <summary>
+            OnRegExp callback that validates and converts regex at parse time (compiled .NET Regex).
+            Used during script/module preparation when CompileRegex is true (default for preparation).
+            </summary>
+        </member>
+        <member name="M:Jint.Engine.CreateConvertRegExpHandler(System.TimeSpan)">
+            <summary>
+            Creates an OnRegExp handler with a caller-specified timeout (interpreted .NET Regex).
+            </summary>
+        </member>
+        <member name="M:Jint.Engine.CreateCompileRegExpHandler(System.TimeSpan)">
+            <summary>
+            Creates an OnRegExp handler with a caller-specified timeout (compiled .NET Regex).
+            </summary>
         </member>
         <member name="M:Jint.Engine.GetActiveScriptOrModule">
             <summary>
@@ -1332,6 +1371,15 @@
             Processes the next request in the queue if any.
             </summary>
         </member>
+        <member name="M:Jint.Native.AsyncGenerator.AsyncGeneratorInstance.AsyncGeneratorContinueForAwait(Jint.Native.Promise.PromiseCapability)">
+            <summary>
+            Resumes execution of the async generator after a for-await-of suspension.
+            Unlike <see cref="M:Jint.Native.AsyncGenerator.AsyncGeneratorInstance.AsyncGeneratorResumeNext"/>, this continues the CURRENT request's
+            execution rather than processing the next queued request (which would fail because
+            the current request was already dequeued when processing started).
+            Called from the for-await-of iterator promise fulfillment/rejection handlers.
+            </summary>
+        </member>
         <member name="M:Jint.Native.AsyncGenerator.AsyncGeneratorInstance.ResumeExecution(Jint.Native.Promise.PromiseCapability)">
             <summary>
             Resumes execution of the async generator with the current request.
@@ -1364,6 +1412,18 @@
             <summary>
             Resumes execution after a yield* delegation has completed.
             Called when the delegated iterator returns done=true.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.AsyncGenerator.AsyncGeneratorInstance.AbortDelegation">
+            <summary>
+            Clears all delegation state and marks the generator as completed.
+            Used when yield* delegation encounters an error that terminates the generator.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.AsyncGenerator.AsyncGeneratorInstance.ClearDelegationIterator">
+            <summary>
+            Clears iterator/method delegation state but preserves _delegatingYieldNode
+            so ResumeAfterDelegation can re-enter at the yield* expression.
             </summary>
         </member>
         <member name="M:Jint.Native.AsyncGenerator.AsyncGeneratorInstance.AsyncGeneratorYield(Jint.Native.JsValue)">
@@ -1958,6 +2018,12 @@
             <paramref name="text"/> is <c>null</c>.
             </exception>
         </member>
+        <member name="P:Jint.Native.Disposable.DisposeCapability.NeedsAsyncTick">
+            <summary>
+            Set to true after DisposeResources if an async-dispose resource with no method
+            was encountered, indicating the caller should introduce an Await tick per spec.
+            </summary>
+        </member>
         <member name="M:Jint.Native.Error.ErrorConstructor.Construct(Jint.Native.JsValue[],Jint.Native.JsValue)">
             <summary>
             https://tc39.es/ecma262/#sec-nativeerror
@@ -2028,6 +2094,24 @@
             https://tc39.es/ecma262/#sec-static-semantics-classelementevaluation
             </summary>
         </member>
+        <member name="T:Jint.Native.Function.ClassDefinition.AutoAccessorResult">
+            <summary>
+            Result of auto-accessor definition evaluation.
+            Contains the field initializer and an optional private element (for private auto-accessors).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.AutoAccessorResult.#ctor(Jint.Native.Object.ClassFieldDefinition,Jint.Native.Object.PrivateElement)">
+            <summary>
+            Result of auto-accessor definition evaluation.
+            Contains the field initializer and an optional private element (for private auto-accessors).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.AutoAccessorDefinitionEvaluation(Jint.Engine,Jint.Native.Object.ObjectInstance,Acornima.Ast.AccessorProperty,System.Boolean)">
+            <summary>
+            https://tc39.es/proposal-decorators/#sec-autoaccessordefinitionevaluation
+            Evaluates an auto-accessor property and returns a field initializer plus optional private element.
+            </summary>
+        </member>
         <member name="M:Jint.Native.Function.ClassDefinition.ClassFieldDefinitionEvaluation(Jint.Engine,Jint.Native.Object.ObjectInstance,Acornima.Ast.PropertyDefinition)">
             <summary>
             /https://tc39.es/ecma262/#sec-runtime-semantics-classfielddefinitionevaluation
@@ -2046,6 +2130,62 @@
         <member name="M:Jint.Native.Function.ClassDefinition.DefineMethodProperty(Jint.Native.Object.ObjectInstance,Jint.Native.JsValue,Jint.Native.Function.ScriptFunction,System.Boolean)">
             <summary>
             https://tc39.es/ecma262/#sec-definemethodproperty
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Function.ClassDefinition.ElementDecoratorPair">
+            <summary>
+            Pairs a class element with its evaluated decorator values.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.ElementDecoratorPair.#ctor(Acornima.Ast.IClassElement,Jint.Native.JsValue[])">
+            <summary>
+            Pairs a class element with its evaluated decorator values.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.EvaluateDecorators(Jint.Runtime.Interpreter.EvaluationContext,Acornima.Ast.NodeList{Acornima.Ast.Decorator}@)">
+            <summary>
+            Evaluates all decorator expressions in source order (left-to-right).
+            Returns array of evaluated decorator functions.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.CreateDecoratorContext(Jint.Engine,System.String,Jint.Native.JsValue,System.Boolean,System.Boolean,System.Collections.Generic.List{Jint.Native.ICallable})">
+            <summary>
+            Creates the decorator context object passed as the second argument to a decorator.
+            https://tc39.es/proposal-decorators/#sec-createdecoratorcontextobject
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.ApplyMethodDecorators(Jint.Engine,Jint.Native.JsValue[],Jint.Native.JsValue,System.String,Jint.Native.JsValue,System.Boolean,System.Boolean,System.Collections.Generic.List{Jint.Native.ICallable})">
+            <summary>
+            Applies decorators to a method, getter, or setter.
+            Returns the potentially replaced function value.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.ApplyFieldDecorators(Jint.Engine,Jint.Native.JsValue[],Jint.Native.Object.ClassFieldDefinition,Jint.Native.JsValue,System.Boolean,System.Boolean,System.Collections.Generic.List{Jint.Native.ICallable})">
+            <summary>
+            Applies decorators to a field definition.
+            Returns the potentially wrapped initializer.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Function.ClassDefinition.AccessorDecoratorResult">
+            <summary>
+            Applies decorators to an auto-accessor.
+            Returns potentially replaced getter/setter and optional init function.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.AccessorDecoratorResult.#ctor(Jint.Native.JsValue,Jint.Native.JsValue,System.Collections.Generic.List{Jint.Native.ICallable})">
+            <summary>
+            Applies decorators to an auto-accessor.
+            Returns potentially replaced getter/setter and optional init function.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.HasDecorators">
+            <summary>
+            Checks if any class element or the class itself has decorators.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Function.ClassDefinition.RunExtraInitializers(Jint.Engine,Jint.Native.JsValue,System.Collections.Generic.List{Jint.Native.ICallable})">
+            <summary>
+            Runs extra initializers registered via addInitializer.
             </summary>
         </member>
         <member name="M:Jint.Native.Function.EvalFunction.PerformEval(Jint.Native.JsValue,Jint.Runtime.Realm,System.Boolean,System.Boolean)">
@@ -2237,6 +2377,12 @@
             <summary>
             The iterator we're delegating to during yield* evaluation.
             When this is non-null, we're in the middle of yield* delegation.
+            </summary>
+        </member>
+        <member name="F:Jint.Native.Generator.GeneratorInstance._delegatingNextMethod">
+            <summary>
+            The cached [[NextMethod]] obtained once before the yield* delegation loop.
+            Per spec step 7.a.i, next must be fetched once, not per-iteration.
             </summary>
         </member>
         <member name="F:Jint.Native.Generator.GeneratorInstance._delegatingYieldNode">
@@ -2661,7 +2807,6 @@
         <member name="T:Jint.Native.Intl.Data.CompactPatterns">
             <summary>
             Provides CLDR compact number patterns for locale-aware compact notation.
-            Data is loaded from embedded CompactPatterns.txt resource.
             </summary>
         </member>
         <member name="M:Jint.Native.Intl.Data.CompactPatterns.GetPatterns(System.String)">
@@ -2715,7 +2860,6 @@
         <member name="T:Jint.Native.Intl.Data.ListPatternsData">
             <summary>
             Provides CLDR list formatting patterns for locale-aware list formatting.
-            Data is loaded from embedded ListPatternsData.txt resource.
             </summary>
         </member>
         <member name="M:Jint.Native.Intl.Data.ListPatternsData.GetPatternsForLocale(System.String)">
@@ -2728,7 +2872,7 @@
         <member name="T:Jint.Native.Intl.Data.LocaleData">
             <summary>
             Provides CLDR locale data for canonicalization.
-            Data is loaded from embedded LocaleData.txt resource.
+            Data is initialized inline in LocaleData.Data.cs.
             </summary>
         </member>
         <member name="P:Jint.Native.Intl.Data.LocaleData.TagMappings">
@@ -2771,11 +2915,6 @@
         <member name="P:Jint.Native.Intl.Data.LocaleData.UnicodeMappings">
             <summary>
             Unicode extension value mappings, keyed by extension key (e.g., "ca", "tz").
-            </summary>
-        </member>
-        <member name="P:Jint.Native.Intl.Data.LocaleData.VariantMapping.Prefix">
-            <summary>
-            Optional prefix variant that should be removed when this alias is applied.
             </summary>
         </member>
         <member name="T:Jint.Native.Intl.Data.MetaZoneData">
@@ -2843,7 +2982,6 @@
         <member name="T:Jint.Native.Intl.Data.RelativeTimePatternsData">
             <summary>
             Provides CLDR relative time formatting patterns for locale-aware relative time formatting.
-            Data is loaded from embedded RelativeTimePatternsData.txt resource.
             </summary>
         </member>
         <member name="M:Jint.Native.Intl.Data.RelativeTimePatternsData.GetDataForLocale(System.String)">
@@ -2927,7 +3065,6 @@
         <member name="T:Jint.Native.Intl.Data.UnitPatternsData">
             <summary>
             Provides CLDR unit formatting patterns for locale-aware unit formatting.
-            Data is loaded from embedded UnitPatternsData.txt resource.
             </summary>
         </member>
         <member name="M:Jint.Native.Intl.Data.UnitPatternsData.GetPatternsForLocale(System.String)">
@@ -2940,7 +3077,6 @@
         <member name="T:Jint.Native.Intl.Data.WeekData">
             <summary>
             Provides CLDR week data for locale-aware week information.
-            Data is loaded from embedded WeekData.txt resource.
             </summary>
         </member>
         <member name="P:Jint.Native.Intl.Data.WeekData.FirstDay">
@@ -4910,22 +5046,177 @@
             https://tc39.es/ecma262/#sec-asyncfromsynciteratorcontinuation
             </summary>
         </member>
+        <member name="T:Jint.Native.Iterator.AsyncIteratorConstructor">
+            <summary>
+            https://tc39.es/ecma262/#sec-asynciterator-constructor
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorConstructor.From(Jint.Native.JsValue,Jint.Native.JsValue[])">
+            <summary>
+            https://tc39.es/ecma262/#sec-asynciterator.from
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.WrapForValidAsyncIterator">
+            <summary>
+            Wrapper instance for AsyncIterator.from when the input is not already an AsyncIterator instance.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.WrapForValidAsyncIteratorPrototype">
+            <summary>
+            https://tc39.es/ecma262/#sec-%wrapforvalidasynciteratorprototype%-object
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.WrapForValidAsyncIteratorPrototype.Next(Jint.Native.JsValue,Jint.Native.JsValue[])">
+            <summary>
+            %WrapForValidAsyncIteratorPrototype%.next()
+            Delegates to the underlying iterator's next() and wraps in a promise.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.WrapForValidAsyncIteratorPrototype.Return(Jint.Native.JsValue,Jint.Native.JsValue[])">
+            <summary>
+            %WrapForValidAsyncIteratorPrototype%.return()
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncIteratorHelper">
+            <summary>
+            Base class for async iterator helper instances (map, filter, take, drop, flatMap).
+            https://tc39.es/ecma262/#sec-asynciteratorhelper-objects
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelper.Next">
+            <summary>
+            Called by AsyncIteratorHelperPrototype.next() to get a promise of the next value.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelper.Return">
+            <summary>
+            Called by AsyncIteratorHelperPrototype.return() to close the helper.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelper.CallIteratorNext">
+            <summary>
+            Calls the underlying iterator's next() and normalizes the result as a promise.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelper.ResolveYield(Jint.Native.Promise.PromiseCapability,Jint.Native.JsValue)">
+            <summary>
+            Helper to resolve promiseCapability with an iterator result {value, done: false},
+            setting state to SuspendedYield.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelper.ResolveDone(Jint.Native.Promise.PromiseCapability)">
+            <summary>
+            Helper to resolve promiseCapability with {value: undefined, done: true},
+            setting state to Completed.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelper.RejectWithError(Jint.Native.Promise.PromiseCapability,Jint.Native.JsValue)">
+            <summary>
+            Helper to reject promiseCapability with an error.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncMapIterator">
+            <summary>
+            Async iterator helper for map(mapper) - transforms each element.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncFilterIterator">
+            <summary>
+            Async iterator helper for filter(predicate) - returns elements matching the predicate.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncTakeIterator">
+            <summary>
+            Async iterator helper for take(limit) - returns the first N elements.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncDropIterator">
+            <summary>
+            Async iterator helper for drop(limit) - skips the first N elements.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncFlatMapIterator">
+            <summary>
+            Async iterator helper for flatMap(mapper) - maps and flattens one level.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Iterator.AsyncIteratorHelperPrototype">
+            <summary>
+            https://tc39.es/ecma262/#sec-%asynciteratorhelperprototype%-object
+            The %AsyncIteratorHelperPrototype% object is the prototype of async iterator helper objects.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelperPrototype.Next(Jint.Native.JsValue,Jint.Native.JsValue[])">
+            <summary>
+            %AsyncIteratorHelperPrototype%.next()
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorHelperPrototype.Return(Jint.Native.JsValue,Jint.Native.JsValue[])">
+            <summary>
+            %AsyncIteratorHelperPrototype%.return()
+            </summary>
+        </member>
         <member name="T:Jint.Native.Iterator.AsyncIteratorPrototype">
             <summary>
             https://tc39.es/ecma262/#sec-asynciteratorprototype
             </summary>
         </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.SetterThatIgnoresPrototypeProperties(Jint.Native.JsValue,Jint.Native.Object.ObjectInstance,Jint.Native.JsValue,Jint.Native.JsValue)">
+            <summary>
+            https://tc39.es/ecma262/#sec-SetterThatIgnoresPrototypeProperties
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.IteratorClose(Jint.Native.Object.ObjectInstance,Jint.Runtime.CompletionType)">
+            <summary>
+            Close an iterator by calling its return() method directly.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.ValidateThisAndGetCallable(Jint.Native.JsValue,Jint.Native.JsValue[],System.String,Jint.Native.ICallable@)">
+            <summary>
+            Validates thisObject is an ObjectInstance and extracts a callable argument.
+            Closes the iterator on validation failure.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.ValidateThisAndGetLimit(Jint.Native.JsValue,Jint.Native.JsValue[],System.String,System.Int64@)">
+            <summary>
+            Validates thisObject and extracts a numeric limit argument.
+            Closes the iterator on validation failure.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.CallIteratorNext(Jint.Native.Iterator.IteratorInstance.ObjectIterator,Jint.Native.Promise.PromiseCapability)">
+            <summary>
+            Calls the underlying iterator's next() and normalizes the result as a promise.
+            Returns null and rejects the capability on failure.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.AsyncIterateLoop(Jint.Native.Iterator.IteratorInstance.ObjectIterator,Jint.Native.Promise.PromiseCapability,System.Action{Jint.Native.JsValue,Jint.Native.Promise.PromiseCapability},System.Action{Jint.Native.JsValue,System.Int32,Jint.Native.Promise.PromiseCapability},System.Int32)">
+            <summary>
+            Shared async iteration loop. Calls next() on the iterator, extracts done/value,
+            and invokes the callback for each value. The callback handles method-specific logic
+            and calls continueLoop() to iterate further, or resolves/rejects the capability to finish.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.ChainCallbackResult(Jint.Native.Iterator.IteratorInstance.ObjectIterator,Jint.Native.JsValue,Jint.Native.Promise.PromiseCapability,System.Action{Jint.Native.JsValue})">
+            <summary>
+            Chains on a promise result from a callback (predicate/reducer/procedure), then invokes
+            the handler with the resolved value. Rejects and closes the iterator on failure.
+            </summary>
+        </member>
         <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.AsyncIterator(Jint.Native.JsValue,Jint.Native.JsValue[])">
             <summary>
             https://tc39.es/ecma262/#sec-asynciteratorprototype-asynciterator
-            %AsyncIteratorPrototype% [ @@asyncIterator ] ( )
-            1. Return the this value.
             </summary>
         </member>
         <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.AsyncDispose(Jint.Native.JsValue,Jint.Native.JsValue[])">
             <summary>
             https://tc39.es/ecma262/#sec-%asynciteratorprototype%-@@asyncDispose
-            %AsyncIteratorPrototype% [ @@asyncDispose ] ( )
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.AsyncIteratorPrototype.AsyncConsumeLoop(Jint.Native.Iterator.IteratorInstance.ObjectIterator,Jint.Native.ICallable,Jint.Native.Promise.PromiseCapability,System.Action{Jint.Native.Promise.PromiseCapability},System.Func{Jint.Native.JsValue,Jint.Native.JsValue,Jint.Native.Promise.PromiseCapability,System.Boolean},System.Int32)">
+            <summary>
+            Shared async consumption loop for forEach/some/every/find.
+            Calls the callback for each value, chains on its result. If shouldStop returns true,
+            the loop terminates (shouldStop is responsible for resolving). Otherwise continues.
             </summary>
         </member>
         <member name="M:Jint.Native.Iterator.IteratorConstructor.Concat(Jint.Native.JsValue,Jint.Native.JsValue[])">
@@ -5078,6 +5369,18 @@
             https://tc39.es/ecma262/#sec-%iteratorhelperprototype%.return
             </summary>
         </member>
+        <member name="M:Jint.Native.Iterator.IteratorInstance.IteratorNext(Jint.Native.JsValue)">
+            <summary>
+            https://tc39.es/ecma262/#sec-iteratornext
+            IteratorNext with an optional value argument, using the cached [[NextMethod]].
+            </summary>
+        </member>
+        <member name="P:Jint.Native.Iterator.IteratorInstance.NextMethod">
+            <summary>
+            The cached [[NextMethod]] from the iterator record.
+            Returns null for built-in iterators that don't have a cached callable.
+            </summary>
+        </member>
         <member name="P:Jint.Native.Iterator.IteratorInstance.Instance">
             <summary>
             Gets the underlying iterator object instance.
@@ -5088,6 +5391,12 @@
         <member name="M:Jint.Native.Iterator.IteratorInstance.CreateIterResultObject(Jint.Native.JsValue,System.Boolean)">
             <summary>
             https://tc39.es/ecma262/#sec-createiterresultobject
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Iterator.IteratorInstance.ObjectIterator.IteratorNext(Jint.Native.JsValue)">
+            <summary>
+            https://tc39.es/ecma262/#sec-iteratornext
+            Uses the cached [[NextMethod]] and forwards the optional value argument.
             </summary>
         </member>
         <member name="M:Jint.Native.Iterator.IteratorInstance.ObjectIterator.Close(Jint.Runtime.CompletionType)">
@@ -5465,6 +5774,32 @@
             <summary>
             https://tc39.es/ecma262/#sec-proxy-object-internal-methods-and-internal-slots-setprototypeof-v
             </summary>
+        </member>
+        <member name="P:Jint.Native.JsRegExp.CustomEngine">
+            <summary>
+            Custom regex engine used when .NET Regex cannot handle the pattern.
+            When set, this takes priority over <see cref="P:Jint.Native.JsRegExp.Value"/>.
+            </summary>
+        </member>
+        <member name="P:Jint.Native.JsRegExp.ConvertedGroupCount">
+            <summary>
+            JS group count (including group 0 for full match) from Jint's converter.
+            0 means not set — fall back to .NET Regex's own group count.
+            </summary>
+        </member>
+        <member name="P:Jint.Native.JsRegExp.ParseResult">
+            <summary>
+            Provides backward-compatible access to the regex parse result.
+            </summary>
+        </member>
+        <member name="P:Jint.Native.JsRegExp.Unicode">
+            <summary>Whether the 'u' flag was explicitly set (for the unicode accessor).</summary>
+        </member>
+        <member name="P:Jint.Native.JsRegExp.FullUnicode">
+            <summary>Whether unicode semantics apply (true for both 'u' and 'v' flags).</summary>
+        </member>
+        <member name="P:Jint.Native.JsRegExp.UsesDotNetEngine">
+            <summary>Whether this regex uses the .NET Regex engine (not the custom engine).</summary>
         </member>
         <member name="T:Jint.Native.JsSharedArrayBuffer">
             <summary>
@@ -6111,6 +6446,12 @@
             only exception to the rule is get/set pair which should share same private name.
             </summary>
         </member>
+        <member name="M:Jint.Native.PrivateName.#ctor(System.String)">
+            <summary>
+            Creates a synthetic PrivateName not tied to a source-level PrivateIdentifier.
+            Used for auto-accessor backing storage.
+            </summary>
+        </member>
         <member name="T:Jint.Native.PrivateIdentifierNameComparer">
             <summary>
             Compares private identifiers by their name instead of reference equality.
@@ -6217,6 +6558,80 @@
             https://tc39.es/ecma262/#sec-regexp-pattern-flags
             </summary>
         </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.ValidateFlags(System.String)">
+            <summary>
+            Validate regex flags per ECMAScript spec: only "dgimsuvy" allowed, no duplicates,
+            u and v are mutually exclusive.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.NeedCustomEngine(System.String,System.String)">
+            <summary>
+            Detect patterns where .NET Regex produces semantically incorrect results
+            compared to ECMAScript specification. These patterns need the custom engine.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.HasUnicodePropertyEscape(System.String)">
+            <summary>
+            Detect \p{...} or \P{...} unicode property escapes in the pattern.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.HasNullableQuantifierCapture(System.String)">
+            <summary>
+            Detect nullable quantifier (min=0) around groups that contain capturing sub-groups.
+            .NET Regex doesn't implement ES spec RepeatMatcher step 2.b correctly:
+            after an optional iteration that matches the empty string, JS discards the iteration
+            (clearing its captures), while .NET retains them.
+            Only routes to the custom engine when the nullable-quantified group actually contains
+            a capturing group — non-capturing groups like (?:foo)? are safe for .NET.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.HasNonAsciiContent(System.String)">
+            <summary>
+            Detect non-ASCII content in the pattern: either literal non-ASCII characters or
+            \uXXXX / \u{XXXX} hex escapes for non-ASCII code points (&gt;0x7F).
+            .NET IgnoreCase applies broader Unicode case folding than ES spec for these characters.
+            ASCII-range escapes like \u0041 work correctly in .NET and don't need the custom engine.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.HasScopedModifiers(System.String)">
+            <summary>
+            Detect scoped modifier groups: (?i:...), (?-m:...), (?ims-ims:...) etc.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.HasNamedGroup(System.String)">
+            <summary>
+            Detect named capturing groups (?&lt;name&gt;...), excluding lookbehind assertions (?&lt;=...) and (?&lt;!...).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.HasForwardNamedBackReference(System.String)">
+            <summary>
+            Detect forward named backreferences: \k&lt;name&gt; appearing before (?&lt;name&gt;...) is defined.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.TryCompileWithCustomEngine(Jint.Native.JsRegExp,System.String,System.String)">
+            <summary>
+            Attempt to compile the regex pattern using the custom Jint regex engine.
+            Falls back to SyntaxError if the custom engine also fails.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.RegExpCreate(Jint.Native.JsValue,Jint.Native.JsValue)">
+            <summary>
+            https://tc39.es/ecma262/#sec-regexpcreate
+            RegExpCreate(P, F) - creates a new RegExp without calling IsRegExp on the pattern.
+            Used by String.prototype.match/search/split per spec.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.ConstructWithCustomEngine(System.String,System.String)">
+            <summary>
+            Construct a RegExp using the custom engine for patterns that .NET Regex cannot handle.
+            Called from regex literal evaluation when Acornima conversion fails.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpConstructor.Construct(Jint.Runtime.RegExp.JintRegExpEngine,System.String,System.String)">
+            <summary>
+            Construct a RegExp reusing a pre-compiled custom engine (avoids re-compilation of bytecode).
+            </summary>
+        </member>
         <member name="M:Jint.Native.RegExp.RegExpPrototype.Source(Jint.Native.JsValue,Jint.Native.JsValue[])">
             <summary>
             https://tc39.es/ecma262/#sec-get-regexp.prototype.source
@@ -6255,6 +6670,16 @@
         <member name="M:Jint.Native.RegExp.RegExpPrototype.RegExpBuiltinExec(Jint.Native.JsRegExp,System.String)">
             <summary>
             https://tc39.es/ecma262/#sec-regexpbuiltinexec
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpPrototype.CustomEngineBuiltinExec(Jint.Native.JsRegExp,System.String,System.UInt64,System.Boolean,System.Boolean)">
+            <summary>
+            RegExpBuiltinExec implementation for the custom regex engine.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.RegExp.RegExpPrototype.CreateReturnValueArrayFromCustom(Jint.Native.JsRegExp,Jint.Runtime.RegExp.RegExpMatchResult@,System.String,System.Boolean)">
+            <summary>
+            Build the JS result array from a custom engine match result.
             </summary>
         </member>
         <member name="M:Jint.Native.RegExp.RegExpPrototype.UpdateLegacyStaticProperties(Jint.Engine,System.Text.RegularExpressions.Match,System.String,System.Int32)">
@@ -7196,6 +7621,273 @@
             Returns null if the time zone ID is not recognized.
             </summary>
         </member>
+        <member name="T:Jint.Native.Temporal.NonIsoCalendars">
+            <summary>
+            Provides calendar operations for non-ISO calendars using .NET's built-in Calendar classes.
+            Supports: Chinese, Dangi, Hebrew, Persian, Coptic, Ethiopic, EthioAA, Indian, Islamic-Umalqura.
+            Gregorian-based calendars (iso8601, gregory, japanese, roc, buddhist) are handled
+            directly in TemporalHelpers using ISO arithmetic.
+            </summary>
+        </member>
+        <member name="T:Jint.Native.Temporal.NonIsoCalendars.CalendarDate">
+            <summary>
+            Result of converting an ISO date to a non-ISO calendar date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.CalendarDate.#ctor(System.Int32,System.Int32,System.String,System.Int32,System.Boolean,System.Int32,System.Int32,System.Int32,System.Boolean)">
+            <summary>
+            Result of converting an ISO date to a non-ISO calendar date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsNonIsoCalendar(System.String)">
+            <summary>
+            Returns true if the calendar is a non-ISO calendar supported by this adapter.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsoToCalendarDate(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Converts an ISO date to calendar-specific fields.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.CalendarDateToIso(System.String,System.Int32,System.String,System.Int32,System.Int32,System.String)">
+            <summary>
+            Converts a calendar date to an ISO date. Returns null if the date is invalid with overflow "reject".
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.CalendarDateAdd(System.String,Jint.Native.Temporal.IsoDate@,System.Int32,System.Int32,System.String)">
+            <summary>
+            Adds years and months to an ISO date using calendar-specific reckoning.
+            Years are added preserving monthCode semantics (not ordinal month).
+            Months are added as ordinal month steps.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.CalendarDateUntil(System.String,Jint.Native.Temporal.IsoDate@,Jint.Native.Temporal.IsoDate@,System.String)">
+            <summary>
+            Computes the difference between two ISO dates using calendar-specific reckoning.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.CalendarEra(System.String,Jint.Native.Temporal.NonIsoCalendars.CalendarDate@)">
+            <summary>
+            Returns the era string for a non-ISO calendar.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.CalendarEraYear(System.String,Jint.Native.Temporal.NonIsoCalendars.CalendarDate@)">
+            <summary>
+            Returns the eraYear for a non-ISO calendar.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.MonthCodeToOrdinal(System.String,System.Globalization.Calendar,System.Int32,System.String,System.String)">
+            <summary>
+            Resolves a monthCode string to an ordinal month number for a given calendar year.
+            Returns the ordinal month, or throws/constrains based on overflow.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.ResolveMonthAndMonthCode(System.String,System.Int32,System.Int32,System.String,System.String)">
+            <summary>
+            Validates that month and monthCode are consistent for a non-ISO calendar.
+            If only monthCode is provided, resolves it to an ordinal month.
+            If only month is provided, uses the ordinal directly.
+            If both are provided, validates consistency.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FindCalendarReferenceYear(System.String,System.Int32,System.String,System.Int32)">
+            <summary>
+            Finds a calendar year where (year, monthCode, day) converts to an ISO date
+            with the given ISO reference year. Used for PlainMonthDay without explicit year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsHebrewLeapYearAlgorithmic(System.Int32)">
+            <summary>
+            Determines if a Hebrew year is a leap year using the 19-year Metonic cycle.
+            Works for any Hebrew year, including those outside .NET HebrewCalendar's range.
+            In each 19-year cycle, years 3, 6, 8, 11, 14, 17, 19 are leap years.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsoYearToCalendarYear(System.String,System.Globalization.Calendar,System.Int32)">
+            <summary>
+            Converts an ISO year to an approximate calendar year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.GetLeapMonthOrdinal(System.String,System.Globalization.Calendar,System.Int32)">
+            <summary>
+            Gets the ordinal position of the leap month in a given year.
+            Returns 0 if the year has no leap month.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.GetLeapDisplayMonth(System.String,System.Int32)">
+            <summary>
+            Gets the display month number of the leap month at the given ordinal.
+            For Chinese/Dangi: leapOrdinal 5 → display 4 (M04L).
+            For Hebrew: leapOrdinal 6 → display 5 (M05L).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.GetMonthsInYear(System.String,System.Globalization.Calendar,System.Int32)">
+            <summary>
+            Gets the number of months in a calendar year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.GetDaysInMonthCal(System.Globalization.Calendar,System.Int32,System.Int32)">
+            <summary>
+            Gets the number of days in a calendar month.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.ClampToCalendarRange(System.Globalization.Calendar,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Clamps a date to the calendar's supported range.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochLeapCount(System.Int64)">
+            <summary>
+            Returns the number of leap years from year 1 through year n (inclusive)
+            for calendars where year % 4 == 3 is a leap year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsFixedEpochLeapYear(System.Int32)">
+            <summary>
+            Returns true if a fixed-epoch calendar year is a leap year.
+            Leap years are those where year % 4 == 3 (years 3, 7, 11, ...).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochDaysToYear(System.Int32)">
+            <summary>
+            Returns the number of days from the calendar epoch to the start of the given year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochDaysInMonth(System.Int32,System.Int32)">
+            <summary>
+            Returns the number of days in the given month of a fixed-epoch calendar year.
+            Months 1-12 have 30 days each. Month 13 has 5 days (6 in leap year).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochToEpochDays(System.Int64,System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Converts a fixed-epoch calendar date to epoch days (days since Unix epoch).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.EpochDaysToFixedEpoch(System.Int64,System.Int64,System.Int32@,System.Int32@,System.Int32@)">
+            <summary>
+            Converts epoch days to a fixed-epoch calendar date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochToCalendarDate(System.Int64,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Converts an ISO date to a fixed-epoch calendar date (Coptic/Ethiopic/EthioAA).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochDateToIso(System.Int64,System.Int32,System.Int32,System.String,System.Int32,System.Int32,System.String)">
+            <summary>
+            Converts a fixed-epoch calendar date to an ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FixedEpochCalendarDateAdd(System.String,Jint.Native.Temporal.IsoDate@,System.Int32,System.Int32,System.String)">
+            <summary>
+            CalendarDateAdd for fixed-epoch calendars (Coptic/Ethiopic/EthioAA).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FindFixedEpochReferenceYear(System.String,System.Int32,System.String,System.Int32)">
+            <summary>
+            Finds a calendar reference year for a fixed-epoch calendar such that
+            (calendarYear, monthCode, day) maps to an ISO date in isoReferenceYear.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.MonthCodeToMonthNumber(System.String)">
+            <summary>
+            Extracts the numeric month from a monthCode string (e.g., "M05" -> 5, "M13" -> 13).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsIndianLeapYear(System.Int32)">
+            <summary>
+            Returns true if an Indian (Saka) calendar year is a leap year.
+            An Indian year is a leap year if the corresponding Gregorian year (sakaYear + 78) is a leap year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IndianDaysInMonth(System.Int32,System.Int32)">
+            <summary>
+            Returns the number of days in the given month of an Indian calendar year.
+            Month 1 (Chaitra): 30 days (31 in leap year).
+            Months 2-6: 31 days each.
+            Months 7-12: 30 days each.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IndianToCalendarDate(Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Converts an ISO date to an Indian (Saka) calendar date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IndianDateToIso(System.Int32,System.String,System.Int32,System.Int32,System.String)">
+            <summary>
+            Converts an Indian (Saka) calendar date to an ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IndianCalendarDateAdd(Jint.Native.Temporal.IsoDate@,System.Int32,System.Int32,System.String)">
+            <summary>
+            CalendarDateAdd for the Indian (Saka) calendar.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FindIndianReferenceYear(System.Int32,System.String,System.Int32)">
+            <summary>
+            Finds a reference year for the Indian calendar.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.DayOfYear(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Returns the day of year (1-based) for an ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.DayOfYearToIsoDate(System.Int32,System.Int32)">
+            <summary>
+            Converts an ISO day of year (1-based) to an ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicUmalquraToCalendarDate(Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Converts an ISO date to an Islamic Umm al-Qura calendar date.
+            Uses .NET's UmAlQuraCalendar when within range, falls back to islamic-civil algorithm otherwise.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicCivilToCalendarDate(Jint.Native.Temporal.IsoDate@,System.Int64)">
+            <summary>
+            Islamic civil calendar conversion (fallback for out-of-range UmAlQura dates).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IsoToJulianDay(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Converts an ISO date to Julian Day Number.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicUmalquraDateToIso(System.Int32,System.String,System.Int32,System.Int32,System.String)">
+            <summary>
+            Converts an Islamic Umm al-Qura calendar date to an ISO date.
+            Uses .NET's UmAlQuraCalendar when within range, falls back to islamic-civil algorithm otherwise.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicCivilDateToIso(System.Int32,System.Int32,System.Int32)">
+            <summary>
+            Converts an Islamic civil date to an ISO date using the tabular algorithm.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicCumulativeMonthDays(System.Int32)">
+            <summary>
+            Cumulative days at the start of each Islamic month (0-indexed).
+            M01=0, M02=30, M03=59, M04=89, M05=118, M06=148, M07=177, M08=207, M09=236, M10=266, M11=295, M12=325
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicCivilTabularDateToIso(System.Int32,System.String,System.Int32,System.Int32,System.String,System.Int64)">
+            <summary>
+            Converts an Islamic tabular calendar date to an ISO date.
+            islamic-civil uses Friday epoch (JDN 1948440), islamic-tbla uses Thursday epoch (JDN 1948439).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.IslamicTabularCalendarDateAdd(System.String,Jint.Native.Temporal.IsoDate@,System.Int32,System.Int32,System.String)">
+            <summary>
+            CalendarDateAdd for Islamic calendars (islamic-civil/islamic-tbla/islamic-umalqura).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.NonIsoCalendars.FindIslamicTabularReferenceYear(System.String,System.Int32,System.String,System.Int32)">
+            <summary>
+            Finds a reference year for Islamic tabular calendars.
+            </summary>
+        </member>
         <member name="T:Jint.Native.Temporal.TemporalNow">
             <summary>
             The Temporal.Now object.
@@ -8061,14 +8753,27 @@
             https://tc39.es/proposal-temporal/#sec-temporal-canonicalizetemporalcalendaridentifier
             </summary>
         </member>
-        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarDateToISO(Jint.Runtime.Realm,System.String,System.Int32,System.Int32,System.Int32,System.String)">
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.RejectTemporalUnsupportedCalendar(Jint.Runtime.Realm,System.String)">
+            <summary>
+            Throws RangeError for observation-based calendars that cannot be used in Temporal.
+            "islamic" and "islamic-rgsa" are only valid for Intl.DateTimeFormat, not Temporal.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.ValidateMonthCodeForNonLeapCalendar(Jint.Runtime.Realm,System.String,System.Nullable{System.Int32})">
+            <summary>
+            Validates a monthCode for calendars that don't support leap months (ISO, Gregorian-based).
+            Also validates month/monthCode consistency when both are provided.
+            Returns the parsed month number from the monthCode, or null if no monthCode.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarDateToISO(Jint.Runtime.Realm,System.String,System.Int32,System.Int32,System.Int32,System.String,System.String)">
             <summary>
             Converts calendar-system year/month/day to ISO year/month/day.
             For non-ISO calendars, the input fields are in the calendar's system
             and need to be converted to the proleptic Gregorian (ISO 8601) calendar.
             </summary>
         </member>
-        <member name="M:Jint.Native.Temporal.TemporalHelpers.FindCalendarReferenceYear(System.String,System.Int32,System.Int32,System.Int32)">
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.FindCalendarReferenceYear(System.String,System.Int32,System.Int32,System.Int32,System.String)">
             <summary>
             For PlainMonthDay without an explicit year: finds a calendar year such that
             converting (calendarYear, month, day) to ISO produces an ISO date with the given
@@ -8137,6 +8842,67 @@
             <summary>
             Returns the calendar-specific year for Gregorian-based calendars.
             For non-Gregorian-based calendars, returns the ISO year unchanged (best effort).
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarYear(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the calendar-specific year for any calendar, including non-ISO calendars.
+            For non-ISO calendars, converts the ISO date to a calendar date first.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarMonth(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the calendar-specific ordinal month for a date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarMonthCode(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the calendar-specific monthCode for a date (e.g., "M01", "M05L").
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarDay(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the calendar-specific day for a date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarDayOfYear(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the day of the year in the calendar system for the given ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarDaysInMonth(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the number of days in the calendar month containing the given ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarDaysInYear(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the number of days in the calendar year containing the given ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarMonthsInYear(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the number of months in the calendar year containing the given ISO date.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarInLeapYear(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns whether the calendar year containing the given ISO date is a leap year.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarEra(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the era string for any calendar, including non-ISO calendars.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.CalendarEraYear(System.String,Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Returns the eraYear for any calendar, including non-ISO calendars.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.JapaneseEra(Jint.Native.Temporal.IsoDate@)">
+            <summary>
+            Japanese era boundaries use full ISO dates (year, month, day), not just year.
             </summary>
         </member>
         <member name="M:Jint.Native.Temporal.TemporalHelpers.ReadEraFields(Jint.Runtime.Realm,Jint.Native.Object.ObjectInstance,System.String)">
@@ -8337,10 +9103,19 @@
             (it may round toward zero for values larger than long.MaxValue).
             </summary>
         </member>
-        <member name="M:Jint.Native.Temporal.TemporalHelpers.GetBigIntegerBitLength(System.Numerics.BigInteger)">
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.ParseFractionDigits(System.String,System.Int32@,System.Int32@,System.Int32@)">
             <summary>
             Returns the number of bits in the absolute value of a positive BigInteger.
-            Compatible with all .NET target frameworks (GetBitLength() is .NET 5+ only).
+            Uses native GetBitLength() on .NET 5+, falls back to byte array on older frameworks.
+            </summary>
+            <summary>
+            Parses a fractional digit group (1-9 digits) into ms/us/ns without string allocation.
+            Each output is a 3-digit group: digits 0-2 → ms, 3-5 → µs, 6-8 → ns.
+            </summary>
+        </member>
+        <member name="M:Jint.Native.Temporal.TemporalHelpers.ParseFractionToNanoseconds(System.String)">
+            <summary>
+            Parses a fractional digit group (1-9 digits) into a single nanosecond value without string allocation.
             </summary>
         </member>
         <member name="M:Jint.Native.Temporal.TemporalHelpers.Pow2(System.Int32)">
@@ -9345,6 +10120,15 @@
             What experimental features are allowed, functionality may lacking or even plain wrong. Defaults to having none.
             </summary>
         </member>
+        <member name="P:Jint.Options.AgentCanSuspend">
+            <summary>
+            Whether the agent can suspend (block) via Atomics.wait().
+            Defaults to true. Set to false for main-thread-like environments where blocking is not allowed.
+            </summary>
+            <remarks>
+            https://tc39.es/ecma262/#sec-agentcansuspend
+            </remarks>
+        </member>
         <member name="M:Jint.Options.Apply(Jint.Engine)">
             <summary>
             Called by the <see cref="T:Jint.Engine"/> instance that loads this <see cref="T:Jint.Options" />
@@ -9838,16 +10622,17 @@
         <member name="P:Jint.IParsingOptions.CompileRegex">
             <summary>
             Gets or sets whether to create compiled <see cref="T:System.Text.RegularExpressions.Regex"/> instances when adapting regular expressions.
-            Defaults to <see langword="null"/>, which means that in the case of non-prepared scripts and modules
-            regular expressions will be interpreted, otherwise they will be compiled.
+            Defaults to <see langword="null"/>. When <see langword="true"/>, regex patterns are pre-compiled during
+            preparation using <see cref="F:System.Text.RegularExpressions.RegexOptions.Compiled"/>. When <see langword="false"/>, interpreted .NET Regex
+            instances are created. When <see langword="null"/>, inherits from the base parser options.
+            Patterns that require the custom QuickJS engine are always deferred to runtime regardless of this setting.
             </summary>
         </member>
         <member name="P:Jint.IParsingOptions.RegexTimeout">
             <summary>
             Gets or sets the default timeout for created <see cref="T:System.Text.RegularExpressions.Regex"/> instances.
             Defaults to <see langword="null"/>, which means that in the case of non-prepared scripts and modules
-            the <see cref="P:Jint.Options.ConstraintOptions.RegexTimeout"/> setting should apply,
-            otherwise the default of the <see cref="P:Acornima.ParserOptions.RegexTimeout"/> setting (10 seconds).
+            the <see cref="P:Jint.Options.ConstraintOptions.RegexTimeout"/> setting should apply.
             </summary>
             <remarks>
             Please note that <see cref="P:Jint.Options.ConstraintOptions.RegexTimeout"/> setting will be ignored
@@ -10184,6 +10969,15 @@
             or <see cref="E:Jint.Runtime.Debugger.DebugHandler.Break"/> event.
             </summary>
         </member>
+        <member name="E:Jint.Runtime.Debugger.DebugHandler.ExceptionThrown">
+            <summary>
+            Triggered when a JavaScript exception is thrown, whether or not it will be caught by a try/catch block.
+            This is analogous to a first-chance exception notification.
+            </summary>
+            <remarks>
+            If a catch block re-throws the exception (e.g. <c>throw e;</c>), the event will fire again for the new throw.
+            </remarks>
+        </member>
         <member name="P:Jint.Runtime.Debugger.DebugHandler.CurrentLocation">
             <summary>
             The location of the current (step-eligible) AST node being executed.
@@ -10394,6 +11188,26 @@
             </summary>
             <remarks>Not currently implemented by Jint.</remarks>
         </member>
+        <member name="T:Jint.Runtime.Debugger.ExceptionThrownEventArgs">
+            <summary>
+            Provides data for the <see cref="E:Jint.Runtime.Debugger.DebugHandler.ExceptionThrown"/> event.
+            </summary>
+        </member>
+        <member name="P:Jint.Runtime.Debugger.ExceptionThrownEventArgs.ThrownValue">
+            <summary>
+            The JavaScript value that was thrown.
+            </summary>
+        </member>
+        <member name="P:Jint.Runtime.Debugger.ExceptionThrownEventArgs.Location">
+            <summary>
+            The source location where the exception was thrown.
+            </summary>
+        </member>
+        <member name="P:Jint.Runtime.Debugger.ExceptionThrownEventArgs.CallStack">
+            <summary>
+            The call stack at the point the exception was thrown.
+            </summary>
+        </member>
         <member name="T:Jint.Runtime.Debugger.OptionalSourceBreakLocationEqualityComparer">
             <summary>
             Equality comparer for BreakLocation matching null Source to any other Source.
@@ -10432,6 +11246,12 @@
         </member>
         <member name="M:Jint.Runtime.Environments.DeclarativeEnvironment.GetAllBindingNames">
             <inheritdoc />
+        </member>
+        <member name="P:Jint.Runtime.Environments.DeclarativeEnvironment.NeedsAsyncDisposeTick">
+            <summary>
+            True if the last DisposeResources call encountered an async-dispose resource
+            with no method (null/undefined value), requiring an implicit Await tick per spec.
+            </summary>
         </member>
         <member name="T:Jint.Runtime.Environments.Environment">
             <summary>
@@ -10516,6 +11336,12 @@
         <member name="M:Jint.Runtime.Environments.ExecutionContext.GetThisEnvironment">
             <summary>
             https://tc39.es/ecma262/#sec-getthisenvironment
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.Environments.ExecutionContext.ClearCompletedAwaitsIfNotResuming">
+            <summary>
+            Clears stale completed-await caches at loop iteration boundaries.
+            Only clears when NOT resuming, since resuming needs cached values from prior awaits.
             </summary>
         </member>
         <member name="T:Jint.Runtime.Environments.FunctionEnvironment">
@@ -10992,6 +11818,13 @@
             https://tc39.es/ecma262/#sec-runtime-semantics-instantiateasyncarrowfunctionexpression
             </summary>
         </member>
+        <member name="M:Jint.Runtime.Interpreter.Expressions.JintAwaitExpression.SuspendForAwaitInAsyncGenerator(Jint.Runtime.Interpreter.EvaluationContext,Jint.Native.AsyncGenerator.AsyncGeneratorInstance,Jint.Native.JsPromise)">
+            <summary>
+            Suspends the async generator at an await expression, creating promise handlers
+            that will resume execution when the awaited promise settles.
+            Follows the same pattern as SuspendForAsyncIteration in JintForInForOfStatement.
+            </summary>
+        </member>
         <member name="M:Jint.Runtime.Interpreter.Expressions.JintAwaitExpression.AsyncFunctionResume(Jint.Engine,Jint.Native.AsyncFunction.AsyncFunctionInstance)">
             <summary>
             Resumes execution of a suspended async function.
@@ -11008,6 +11841,12 @@
             <summary>
             Detects left-recursive chains of '+' operations that include at least one string literal,
             and flattens them into a single StringConcatenationExpression to avoid intermediate allocations.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.Interpreter.Expressions.JintBinaryExpression.ValidateBigIntPowSize(Jint.Runtime.Realm,System.Numerics.BigInteger,System.Int32)">
+            <summary>
+            Validates that BigInteger.Pow(base, exponent) won't produce an excessively large result.
+            Limits result to ~1 million bits (~125 KB) to prevent memory exhaustion.
             </summary>
         </member>
         <member name="T:Jint.Runtime.Interpreter.Expressions.JintBinaryExpression.StringConcatenationExpression">
@@ -11039,6 +11878,12 @@
             </summary>
             <param name="context"></param>
             <seealso cref="T:Jint.Runtime.Interpreter.Expressions.JintLiteralExpression"/>
+        </member>
+        <member name="M:Jint.Runtime.Interpreter.Expressions.JintExpression.GetBooleanValue(Jint.Runtime.Interpreter.EvaluationContext)">
+            <summary>
+            Resolves this expression as a boolean value.
+            Comparison expressions override this to avoid creating a JsBoolean wrapper.
+            </summary>
         </member>
         <member name="P:Jint.Runtime.Interpreter.Expressions.JintExpression.SourceText">
             <summary>
@@ -11143,9 +11988,21 @@
             Runs the yield* delegation loop for async generators.
             </summary>
         </member>
+        <member name="M:Jint.Runtime.Interpreter.Expressions.JintYieldExpression.EnsurePromise(Jint.Engine,Jint.Native.JsValue)">
+            <summary>
+            Wraps a value in a promise via PromiseResolve if it isn't already a JsPromise.
+            This implements the spec's Await semantics for async generator yield* delegation.
+            </summary>
+        </member>
         <member name="M:Jint.Runtime.Interpreter.Expressions.JintYieldExpression.AwaitAndYieldDelegation(Jint.Runtime.Interpreter.EvaluationContext,Jint.Native.AsyncGenerator.AsyncGeneratorInstance,Jint.Native.Iterator.IteratorInstance,Jint.Native.JsPromise)">
             <summary>
             Awaits the inner iterator's Promise and continues delegation.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.Interpreter.Expressions.JintYieldExpression.AwaitResumptionThenDelegateReturn(Jint.Runtime.Interpreter.EvaluationContext,Jint.Native.AsyncGenerator.AsyncGeneratorInstance,Jint.Native.Iterator.IteratorInstance,Jint.Native.JsValue)">
+            <summary>
+            Per spec AsyncGeneratorUnwrapYieldResumption: Await the resumption value first,
+            then continue yield* delegation with the Return path (GetMethod("return"), etc.).
             </summary>
         </member>
         <member name="M:Jint.Runtime.Interpreter.Expressions.JintYieldExpression.AsyncGeneratorYield(Jint.Runtime.Interpreter.EvaluationContext,Jint.Native.JsValue)">
@@ -11341,12 +12198,6 @@
             <summary>
             http://www.ecma-international.org/ecma-262/5.1/#sec-12.9
             </summary>
-        </member>
-        <member name="M:Jint.Runtime.Interpreter.Statements.JintStatement.Initialize(Jint.Runtime.Interpreter.EvaluationContext)">
-            <summary>
-            Opportunity to build one-time structures and caching based on lexical context.
-            </summary>
-            <param name="context"></param>
         </member>
         <member name="T:Jint.Runtime.Interpreter.Statements.JintSwitchStatement">
             <summary>
@@ -12046,6 +12897,465 @@
             true if the Reference Record originated in strict mode code, false otherwise.
             </summary>
         </member>
+        <member name="T:Jint.Runtime.RegExp.JintRegExpEngine">
+            <summary>
+            Custom JavaScript regex engine based on QuickJS's libregexp.
+            Used when .NET Regex cannot handle the pattern (v-flag, unicode property escapes,
+            forward backreferences, semantic differences).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JintRegExpEngine.Compile(System.String,Jint.Runtime.RegExp.RegExpFlags,System.Threading.CancellationToken)">
+            <summary>Compile a JavaScript regex pattern into bytecode.</summary>
+        </member>
+        <member name="P:Jint.Runtime.RegExp.JintRegExpEngine.CaptureCount">
+            <summary>Capture group count (including group 0 for full match).</summary>
+        </member>
+        <member name="P:Jint.Runtime.RegExp.JintRegExpEngine.Flags">
+            <summary>Compiled flags.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JintRegExpEngine.GetGroupName(System.Int32)">
+            <summary>Get the name of a capture group by its 1-based index.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JintRegExpEngine.Execute(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>Execute the regex against the input string starting at the given index.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JintRegExpEngine.IsMatch(System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>Test if the regex matches the input string.</summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.JsRegExpConverter">
+            <summary>
+            Lightweight JavaScript regex pattern to .NET Regex converter.
+            Handles common patterns by rewriting JS-specific escape sequences and anchors
+            to their .NET standard mode equivalents. Falls back (returns false) for patterns
+            that require the custom QuickJS engine (Unicode mode, named groups, etc.).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JsRegExpConverter.TryConvert(System.String,System.String,System.TimeSpan,System.Text.RegularExpressions.Regex@,System.Int32@,System.Boolean)">
+            <summary>
+            Try to convert a JS regex pattern to a .NET Regex.
+            Returns false if the pattern requires the custom engine.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JsRegExpConverter.ConvertEscapeSequence(System.String,System.Int32@,System.Text.StringBuilder,System.Boolean,System.Int32@,System.Boolean@,System.Int32)">
+            <summary>
+            Convert an escape sequence outside a character class.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JsRegExpConverter.ConvertInsideCharClass(System.String,System.Int32@,System.Char,System.Text.StringBuilder,Jint.Runtime.RegExp.JsRegExpConverter.CharClassLastItem@,System.Boolean)">
+            <summary>
+            Convert a character inside a character class [...].
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.JsRegExpConverter.EmitCharClassShorthand(System.Text.StringBuilder,System.String,Jint.Runtime.RegExp.JsRegExpConverter.CharClassLastItem@)">
+            <summary>
+            Emit a shorthand expansion inside a character class, handling dash-before-shorthand edge case.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.CharRange">
+            <summary>
+            Manages a sorted list of [start, end) code point intervals stored as flat uint values.
+            Port of the C CharRange struct and cr_* functions from libunicode.
+            </summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.CharRange.Points">
+            <summary>Points sorted by increasing value. Length is always even (start/end pairs).</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.CharRange.UnionInterval(System.UInt32,System.UInt32)">
+            <summary>
+            Union a single character interval [c1, c2+1). Port of cr_union_interval.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.CharRange.Invert">
+            <summary>
+            Invert the character range (complement). Port of cr_invert.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.CharRange.Op1(System.ReadOnlySpan{System.UInt32},Jint.Runtime.RegExp.Unicode.CharRangeOp)">
+            <summary>
+            Apply set operation: a = a op b. Port of cr_op1.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.CharRange.Op1(Jint.Runtime.RegExp.CharRange,Jint.Runtime.RegExp.Unicode.CharRangeOp)">
+            <summary>
+            Apply set operation: a = a op b (where b is another CharRange).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.CharRange.RegexpCanonicalize(System.Boolean)">
+            <summary>
+            Canonicalize the range for case-insensitive matching.
+            Port of cr_regexp_canonicalize.
+            </summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.CharRangeHelpers.CharRangeMax">
+            <summary>
+            Range extends beyond the maximum Unicode code point.
+            In the C code this corresponds to ranges up to UINT32_MAX.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.CharRangeHelpers.Op(System.Collections.Generic.List{System.UInt32},System.ReadOnlySpan{System.UInt32},System.ReadOnlySpan{System.UInt32},Jint.Runtime.RegExp.Unicode.CharRangeOp)">
+            <summary>
+            Port of cr_op: compute result = a op b (union, inter, xor, sub).
+            Both a and b must be sorted non-overlapping interval arrays with [start, end) pairs.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.REStringList">
+            <summary>
+            Represents a set of characters (via CharRange) plus multi-codepoint strings
+            (via a HashSet). Used for unicode-sets (v-flag) character class operations.
+            Port of the C REStringList struct.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.REStringList.Add(System.ReadOnlySpan{System.UInt32})">
+            <summary>
+            Add a code point sequence. Single code points go into the char range;
+            multi-codepoint sequences go into the string hash set.
+            Port of re_string_add.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.REStringList.Op(Jint.Runtime.RegExp.REStringList,Jint.Runtime.RegExp.Unicode.CharRangeOp)">
+            <summary>a = a op b. Port of re_string_list_op.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.REStringList.Canonicalize(System.Boolean)">
+            <summary>
+            Canonicalize all strings and char ranges for case-insensitive matching.
+            Port of re_string_list_canonicalize.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.REStringList.GetStringsSortedByLengthDesc">
+            <summary>
+            Get all multi-char strings sorted by descending length (longest first).
+            Used for emitting match alternatives.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpCompiler">
+            <summary>
+            Compiles JavaScript regex patterns to bytecode.
+            Faithfully ported from QuickJS libregexp.c (lre_compile and supporting functions).
+            </summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.RegExpCompiler.GroupNameTrailerLen">
+            <summary>
+            Trailer length after the group name including the trailing '\0'.
+            Matches LRE_GROUP_NAME_TRAILER_LEN in the C code.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.Compile(System.String,Jint.Runtime.RegExp.RegExpFlags,System.Threading.CancellationToken)">
+            <summary>
+            Compile a JavaScript regular expression pattern into bytecode.
+            </summary>
+            <param name="pattern">The regex pattern string (without delimiters).</param>
+            <param name="flags">The regex flags.</param>
+            <param name="cancellationToken">Optional cancellation token for timeout/abort.</param>
+            <returns>The compiled bytecode including the 8-byte header.</returns>
+            <exception cref="T:Jint.Runtime.RegExp.RegExpSyntaxException">Thrown on syntax errors in the pattern.</exception>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpCompiler.REParseState">
+            <summary>
+            Internal parse state for the regex compiler. Corresponds to REParseState in the C code.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitOpU32(Jint.Runtime.RegExp.RegExpOpcode,System.UInt32)">
+            <summary>Emit opcode + u32 value. Returns the offset of the u32.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitGoto(Jint.Runtime.RegExp.RegExpOpcode,System.Int32)">
+            <summary>Emit goto-style opcode with relative offset. Returns offset of the u32.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitGotoU8(Jint.Runtime.RegExp.RegExpOpcode,System.Byte,System.Int32)">
+            <summary>Emit goto with a u8 arg then relative offset. Returns offset of the u32.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitGotoU8U32(Jint.Runtime.RegExp.RegExpOpcode,System.Byte,System.UInt32,System.Int32)">
+            <summary>
+            Emit goto with u8 arg, u32 arg, then relative offset.
+            Returns offset of the u32 goto.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitChar(System.UInt32)">
+            <summary>
+            Emit a character match opcode (Char/Char32, with or without case-insensitive variant).
+            Port of re_emit_char.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ByteCodeInsert(System.Int32,System.Int32)">
+            <summary>Insert 'len' zero bytes at 'pos'. Port of dbuf_insert.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ReadChar">
+            <summary>Read one code point, handling surrogates in unicode mode.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseDigits(System.Boolean)">
+            <summary>
+            Parse decimal digits starting at current position.
+            If allowOverflow, clamps to int.MaxValue; otherwise returns -1 on overflow.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseDigitsAt(System.String,System.Int32@,System.Int32,System.Boolean)">
+            <summary>
+            Parse decimal digits at a given position (does not modify _pos).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseEscape(System.Int32)">
+            <summary>
+            Parse an escape sequence. _pos points after the '\'.
+            allowUtf16: 0=no UTF-16, 1=UTF-16 allowed, 2=UTF-16 + surrogate pair conversion.
+            Returns the character, -1 (malformed), or -2 (unrecognized).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseUnicodeProperty(Jint.Runtime.RegExp.REStringList,System.Boolean,System.Boolean)">
+            <summary>
+            Parse \p{...} or \P{...} unicode property escape.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.GetClassAtom(Jint.Runtime.RegExp.REStringList,System.Boolean)">
+            <summary>
+            Parse a single atom inside a character class or as a standalone atom.
+            Returns the code point value, or CLASS_RANGE_BASE + enum for built-in classes, or -1 on error.
+            If cr is non-null, class ranges (like \d, \p{...}) populate it.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitStringList(Jint.Runtime.RegExp.REStringList)">
+            <summary>
+            Emit bytecode for matching a REStringList (char ranges + multi-char strings).
+            For v-flag (unicode-sets) character classes.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseClassSetOperand(Jint.Runtime.RegExp.REStringList)">
+            <summary>
+            Parse a class set operand for unicode-sets (v-flag) operations.
+            Port of re_parse_class_set_operand.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseNestedClass(Jint.Runtime.RegExp.REStringList)">
+            <summary>
+            Parse a (possibly nested) character class [...].
+            Handles union, intersection (ampersand-ampersand), and subtraction (--) for unicode-sets.
+            Port of re_parse_nested_class.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.NeedCheckAdvAndCaptureInit(System.Int32,System.Int32)">
+            <summary>
+            Determine if the bytecode atom always advances the character pointer
+            and whether captures need initialization.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseGroupName">
+            <summary>
+            Parse a group name. _pos points to the first char after '&lt;'.
+            Returns the group name string, or throws RegExpSyntaxException.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ParseCaptures(System.Int32@,System.String,System.Boolean)">
+            <summary>
+            If captureName is null: return the total number of captures + 1.
+            Otherwise, return the number of groups matching that name.
+            If emitGroupIndex, emit the matching capture indexes into bytecode.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.FindGroupName(System.String,System.Boolean)">
+            <summary>
+            Find a group name in the already-parsed group names list.
+            Returns the count of matching groups. If emitGroupIndex, emits capture indexes.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.IsDuplicateGroupName(System.String,System.Int32)">
+            <summary>
+            Check if a group name is a duplicate within the same scope.
+            Port of is_duplicate_group_name.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.EmitNormalChar(System.Int32,Jint.Runtime.RegExp.REStringList,System.Boolean,System.Int32@,System.Int32@)">
+            <summary>
+            Emit a normal character or class atom (extracted from the 'normal_char' label in the C code).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.ComputeRegisterCount">
+            <summary>
+            Allocate the registers as a stack. The control flow is recursive so
+            the analysis can be linear. Returns max stack size or -1 on error.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpCompiler.REParseState.SerializeGroupNames">
+            <summary>
+            Serialize group names to the end of the bytecode buffer.
+            Format: null-terminated name + scope byte for each capture group (1-based).
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpInterpreter">
+            <summary>
+            Bytecode interpreter for QuickJS-compiled regular expressions.
+            Executes a backtracking NFA over a UTF-16 input string.
+            </summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.RegExpInterpreter.Unset">
+            <summary>Unset capture position sentinel (mirrors NULL in the C code).</summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.RegExpInterpreter.InterruptCounterInit">
+            <summary>Number of opcodes between cancellation checks.</summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.RegExpInterpreter.InitialStackCapacity">
+            <summary>Initial backtracking stack capacity (in int elements).</summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.RegExpInterpreter.MaxStackCapacity">
+            <summary>
+            Maximum backtracking stack size (in int elements).
+            Guards against unbounded memory growth from a single regex execution.
+            16M elements = ~64 MB. Greedy quantifiers on large Unicode strings (e.g. /^\D+$/v
+            on 1M chars) legitimately need ~5M elements. The cancellation token timeout
+            is the primary ReDoS protection; this limit is a memory safety bound.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.Execute(System.ReadOnlySpan{System.Byte},System.String,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Execute regex bytecode against input string.
+            Returns capture positions array on match, null on no match.
+            Capture positions: even indices = start char index, odd = end char index.
+            Value of -1 means the capture group did not participate.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.GetCaptureCount(System.ReadOnlySpan{System.Byte})">
+            <summary>Get capture count from bytecode header.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.GetFlags(System.ReadOnlySpan{System.Byte})">
+            <summary>Get flags from bytecode header.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.GetGroupNames(System.ReadOnlySpan{System.Byte})">
+            <summary>
+            Get group names from bytecode (stored after the bytecode body).
+            Returns null if no named groups. Otherwise returns an array of length captureCount
+            where index 0 is always null (group 0 = entire match) and subsequent entries are the
+            names for groups 1..captureCount-1. A null entry means the group is unnamed.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.GetChar(System.String,System.Int32@,System.Int32,System.Boolean)">
+            <summary>Read one code point at cindex, advance cindex past it.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.PeekChar(System.String,System.Int32,System.Int32,System.Boolean)">
+            <summary>Peek one code point at cindex without advancing.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.PeekPrevChar(System.String,System.Int32,System.Boolean)">
+            <summary>Peek one code point immediately before cindex (looking backward).</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.GetPrevChar(System.String,System.Int32@,System.Boolean)">
+            <summary>Read one code point going backward: decrement cindex, return the code point.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.PrevChar(System.String,System.Int32@,System.Boolean)">
+            <summary>Move cindex backward by one code point without returning it.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.IsSpace(System.Int32)">
+            <summary>
+            ECMAScript WhiteSpace + LineTerminator test (matches \s character class).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.IsWordChar(System.Int32)">
+            <summary>
+            Test if c is a word character ([A-Za-z0-9_]) for \b / \w matching.
+            Only checks the ASCII-like range; the caller handles special Unicode cases
+            (0x017F and 0x212A) for case-insensitive word boundaries separately.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.Canonicalize(System.Int32,System.Boolean)">
+            <summary>
+            JavaScript regex case-folding (lre_canonicalize equivalent).
+            Unicode mode: simple case fold (upper -> lower for ASCII, CaseFolding for rest).
+            Non-Unicode mode: legacy behavior (lower -> upper for ASCII, toUpperCase for rest if single char and >= 128).
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.MatchRange16(System.ReadOnlySpan{System.Byte},System.Int32,System.Int32,System.UInt32)">
+            <summary>
+            Binary search over n sorted 16-bit (low, high) pairs starting at bc[pc].
+            Returns true if c falls within any range. 0xFFFF in the last high means +infinity.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.MatchRange32(System.ReadOnlySpan{System.Byte},System.Int32,System.Int32,System.UInt32)">
+            <summary>
+            Binary search over n sorted 32-bit (low, high) pairs starting at bc[pc].
+            Returns true if c falls within any range.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.PushFrame(System.Int32[]@,System.Int32[]@,System.Int32@,System.Int32@,System.Span{System.Int32},System.Int32,System.Int32,System.Int32,Jint.Runtime.RegExp.RegExpInterpreter.ExecStateType)">
+            <summary>
+            Push a backtracking frame: saves the full capture+register array (snapshot approach).
+            This matches QuickJS's push_state which does memcpy of the entire capture array.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.PopFrame(System.Int32[],System.Int32@,System.Int32@,System.Span{System.Int32},System.Int32,System.Int32@,System.Int32@)">
+            <summary>
+            Pop a backtracking frame: restores the full capture+register array from snapshot.
+            Returns the frame's state type.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpInterpreter.ExecBacktrack(System.ReadOnlySpan{System.Byte},System.String,System.Span{System.Int32},System.Int32,System.Int32,System.Boolean,System.Threading.CancellationToken)">
+            <summary>
+            Execute the backtracking NFA interpreter.
+            Returns 1 on match, 0 on no match.
+            Throws <see cref="T:System.OperationCanceledException"/> on timeout/cancellation.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpMatchResult">
+            <summary>
+            Result of a single regex match operation.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpMatchResult.#ctor(System.Boolean,System.Int32,System.Int32,System.String,Jint.Runtime.RegExp.RegExpGroupResult[])">
+            <summary>
+            Result of a single regex match operation.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpGroupResult">
+            <summary>
+            Result for a single capture group within a match.
+            </summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.RegExpGroupResult.#ctor(System.Boolean,System.Int32,System.Int32,System.String,System.String)">
+            <summary>
+            Result for a single capture group within a match.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpOpcode">
+            <summary>
+            Regular expression bytecode opcodes. Each opcode has a fixed base size
+            (some are variable-length due to trailing range data).
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpOpcodeInfo">
+            <summary>
+            Base sizes for each opcode (excluding variable-length range data).
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpFlags">
+            <summary>
+            Regex flags stored in bytecode header.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpHeader">
+            <summary>
+            Bytecode header layout constants.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.RegExpSyntaxException">
+            <summary>
+            Thrown when a regex pattern has a syntax error during custom engine compilation.
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.Unicode.UnicodeData">
+            <summary>
+            Compressed Unicode tables: General Category, Script, Binary Properties, Case Conversion.
+            Data from QuickJS-NG libunicode-table.h (Unicode 17.0).
+            </summary>
+        </member>
+        <member name="T:Jint.Runtime.RegExp.Unicode.UnicodeProperties">
+            <summary>
+            Unicode property lookups for JS regex \p{...} patterns, case folding for /i,
+            and character class set operations for /v flag.
+            </summary>
+        </member>
+        <member name="F:Jint.Runtime.RegExp.Unicode.UnicodeProperties.CharRangeMax">
+            <summary>Upper bound sentinel for character ranges — matches compiler's CharRangeMax (one past max Unicode).</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.Unicode.UnicodeProperties.CaseConv(System.Span{System.UInt32},System.UInt32,System.Int32)">
+            <summary>Case-convert code point. convType: 0=upper, 1=lower, 2=casefold.</summary>
+        </member>
+        <member name="M:Jint.Runtime.RegExp.Unicode.UnicodeProperties.Canonicalize(System.UInt32,System.Boolean)">
+            <summary>JS regex Canonicalize abstract operation.</summary>
+        </member>
         <member name="T:Jint.Runtime.SuspendData">
             <summary>
             Base class for generator suspension state.
@@ -12093,6 +13403,13 @@
             The iteration environment for lexical bindings (let/const in for-of).
             </summary>
         </member>
+        <member name="P:Jint.Runtime.ForOfSuspendData.OuterEnv">
+            <summary>
+            The outer environment of the for-of loop body evaluation.
+            Needed because the saved execution context on async resume may have a
+            block-scoped environment from let declarations inside the loop body.
+            </summary>
+        </member>
         <member name="T:Jint.Runtime.ForLoopSuspendData">
             <summary>
             Stores the state of a regular for loop when a generator yields inside it.
@@ -12114,9 +13431,21 @@
             The resolved iterator result from awaiting the next() Promise.
             </summary>
         </member>
+        <member name="P:Jint.Runtime.ForAwaitSuspendData.RejectedValue">
+            <summary>
+            The rejected value if the iterator's next() Promise was rejected.
+            When non-null, the for-await-of loop will throw this value on resume.
+            </summary>
+        </member>
         <member name="P:Jint.Runtime.ForAwaitSuspendData.AccumulatedValue">
             <summary>
             The accumulated result value (v) from previous iterations.
+            </summary>
+        </member>
+        <member name="P:Jint.Runtime.ForAwaitSuspendData.CurrentValue">
+            <summary>
+            The current value being processed when yield fired inside destructuring.
+            When set, the resume should skip the iterator step and use this value.
             </summary>
         </member>
         <member name="T:Jint.Runtime.BlockSuspendData">
@@ -12132,6 +13461,12 @@
         <member name="P:Jint.Runtime.BlockSuspendData.OuterEnvironment">
             <summary>
             The outer environment to restore after the block completes.
+            </summary>
+        </member>
+        <member name="P:Jint.Runtime.BlockSuspendData.DisposalComplete">
+            <summary>
+            Whether DisposeResources has already been called for this block.
+            When true, resumption should skip disposal and just continue.
             </summary>
         </member>
         <member name="T:Jint.Runtime.SequenceSuspendData">
@@ -12325,6 +13660,28 @@
         <member name="T:Jint.Runtime.TypeErrorException">
             <summary>
             Workaround for situation where engine is not easily accessible.
+            </summary>
+        </member>
+        <member name="T:Jint.Test262AgentManager">
+            <summary>
+            Implements the $262.agent API for Test262 multi-agent tests.
+            See https://github.com/tc39/test262/blob/main/INTERPRETING.md
+            </summary>
+        </member>
+        <member name="M:Jint.Test262AgentManager.InstallAgent(Jint.Engine,Jint.Native.Object.ObjectInstance)">
+            <summary>
+            Adds the $262.agent object to the engine's $262 object.
+            </summary>
+        </member>
+        <member name="T:Jint.Test262Object">
+            <summary>
+            Provides the standard $262 test harness object for ECMAScript Test262 conformance testing.
+            See https://github.com/tc39/test262/blob/main/INTERPRETING.md
+            </summary>
+        </member>
+        <member name="M:Jint.Test262Object.Install(Jint.Engine)">
+            <summary>
+            Installs the $262 object into the engine's global scope and returns it.
             </summary>
         </member>
         <member name="T:System.Threading.Lock">

@@ -262,7 +262,7 @@
         </member>
         <member name="F:Acornima.EcmaVersion.Latest">
             <summary>
-            The latest version which is fully supported (<see cref="F:Acornima.EcmaVersion.ES2023"/>).
+            The latest version which is fully supported (<see cref="F:Acornima.EcmaVersion.ES2026"/>).
             </summary>
         </member>
         <member name="F:Acornima.ExperimentalESFeatures.Decorators">
@@ -287,7 +287,7 @@
         </member>
         <member name="F:Acornima.ExperimentalESFeatures.RegExpModifiers">
             <summary>
-            Regular expression modifiers feature as specified by this <seealso href="https://github.com/tc39/proposal-regexp-modifiers">proposal</seealso>.
+            Regular expression modifiers feature as specified by this <seealso href="https://github.com/tc39/proposal-regexp-modifiers">proposal</seealso>. Available only when <see cref="P:Acornima.ParserOptions.EcmaVersion"/> >= ES2018.
             </summary>
         </member>
         <member name="T:Acornima.Helpers.ArrayList`1">
@@ -473,9 +473,10 @@
         <member name="P:Acornima.ParserOptions.EcmaVersion">
             <summary>
             Gets or sets the ECMAScript version to parse.
-            Must be either ES3, ES5, ES6 (or ES2015), ES7 (ES2016), ES8 (ES2017), ES9 (ES2018), ES10
-            (ES2019), ES11 (ES2020), ES12 (ES2021), ES13 (ES2022), ES14 (ES2023), or Latest
-            (the latest version the library supports). Defaults to <see cref="F:Acornima.EcmaVersion.Latest"/>.
+            Must be either ES3, ES5, ES6 (or ES2015), ES7 (ES2016), ES8 (ES2017), ES9 (ES2018),
+            ES10 (ES2019), ES11 (ES2020), ES12 (ES2021), ES13 (ES2022), ES14 (ES2023), ES15 (ES2024),
+            ES16 (ES2025), ES17 (ES2026) or Latest (the latest version the library supports).
+            Defaults to <see cref="F:Acornima.EcmaVersion.Latest"/>.
             </summary>
             <remarks>
             This influences support for strict mode, the set of reserved words, and support
@@ -582,7 +583,7 @@
             Gets or sets an optional callback function which will be called whenever a token is read.
             </summary>
             <remarks>
-            It will be passed the parameters of the token as a <see cref="T:Acornima.Token"/> object,
+            Parameters of the token will be passed to the callback as a <see cref="T:Acornima.Token"/> object,
             in the same format as returned by <see cref="M:Acornima.Tokenizer.GetToken(Acornima.TokenizerContext@)"/>.
             </remarks>
         </member>
@@ -591,7 +592,17 @@
             Gets or sets an optional callback function which will be called whenever a comment is skipped.
             </summary>
             <remarks>
-            It will be passed the parameters of the comment as a <see cref="T:Acornima.Comment"/> object.
+            Parameters of the comment will be passed to the callback as a <see cref="T:Acornima.Comment"/> object.
+            </remarks>
+        </member>
+        <member name="P:Acornima.ParserOptions.OnRegExp">
+            <summary>
+            Gets or sets an optional callback function which will be called instead of the built-in parsing logic
+            whenever a regular expression is read.
+            </summary>
+            <remarks>
+            You can use the callback to hook into regular expression parsing, e.g., to parse regular expressions
+            into ASTs, convert them to .NET objects that can execute them or skip parsing altogether).
             </remarks>
         </member>
         <member name="P:Acornima.ParserOptions.OnInsertedSemicolon">
@@ -753,7 +764,7 @@
         </member>
         <member name="P:Acornima.RegExpConversionErrorMessages.RegExpUnicodeSetsModeNotSupported">
             <summary>
-              Looks up a localized string similar to Unicode sets mode (flag v) is not supported currently.
+              Looks up a localized string similar to Conversion of Unicode sets mode (flag v) regular expressions to .NET Regex is not supported.
             </summary>
         </member>
         <member name="P:Acornima.RegExpConversionErrorMessages.RegExpUnmappableGroupName">
@@ -845,6 +856,11 @@
         <member name="P:Acornima.SyntaxErrorMessages.ContinuousNumericSeparator">
             <summary>
               Looks up a localized string similar to Only one underscore is allowed as numeric separator.
+            </summary>
+        </member>
+        <member name="P:Acornima.SyntaxErrorMessages.DeclarationMissingInitializer_AwaitUsing">
+            <summary>
+              Looks up a localized string similar to Missing initializer in await using declaration.
             </summary>
         </member>
         <member name="P:Acornima.SyntaxErrorMessages.DeclarationMissingInitializer_Const">
@@ -1037,6 +1053,11 @@
               Looks up a localized string similar to Invalid Unicode escape sequence.
             </summary>
         </member>
+        <member name="P:Acornima.SyntaxErrorMessages.InvalidUsingInForInLoop">
+            <summary>
+              Looks up a localized string similar to Invalid &apos;using&apos; in for-in loop.
+            </summary>
+        </member>
         <member name="P:Acornima.SyntaxErrorMessages.LabelRedeclaration">
             <summary>
               Looks up a localized string similar to Label &apos;{0}&apos; has already been declared.
@@ -1122,9 +1143,19 @@
               Looks up a localized string similar to Invalid regular expression: /{0}/{1}: Invalid character class.
             </summary>
         </member>
+        <member name="P:Acornima.SyntaxErrorMessages.RegExpInvalidCharacterInClass">
+            <summary>
+              Looks up a localized string similar to Invalid regular expression: /{0}/{1}: Invalid character in character class.
+            </summary>
+        </member>
         <member name="P:Acornima.SyntaxErrorMessages.RegExpInvalidClassPropertyName">
             <summary>
               Looks up a localized string similar to Invalid regular expression: /{0}/{1}: Invalid property name in character class.
+            </summary>
+        </member>
+        <member name="P:Acornima.SyntaxErrorMessages.RegExpInvalidClassSetOperation">
+            <summary>
+              Looks up a localized string similar to Invalid regular expression: /{0}/{1}: Invalid set operation in character class.
             </summary>
         </member>
         <member name="P:Acornima.SyntaxErrorMessages.RegExpInvalidDecimalEscape">
@@ -1180,6 +1211,11 @@
         <member name="P:Acornima.SyntaxErrorMessages.RegExpMultipleFlagDashes">
             <summary>
               Looks up a localized string similar to Invalid regular expression: /{0}/{1}: Multiple dashes in flag group.
+            </summary>
+        </member>
+        <member name="P:Acornima.SyntaxErrorMessages.RegExpNegatedCharacterClassWithStrings">
+            <summary>
+              Looks up a localized string similar to Invalid regular expression: /{0}/{1}: Negated character class may contain strings.
             </summary>
         </member>
         <member name="P:Acornima.SyntaxErrorMessages.RegExpNothingToRepeat">
@@ -1513,9 +1549,6 @@
             <summary>
             Checks whether an ECMAScript regular expression is syntactically correct.
             </summary>
-            <remarks>
-            Unicode sets mode (flag v) is not supported currently, for such patterns the method returns <see langword="false"/>.
-            </remarks>
             <returns><see langword="true"/> if the regular expression is syntactically correct, otherwise <see langword="false"/>.</returns>
         </member>
         <member name="M:Acornima.Tokenizer.AdaptRegExp(System.String,System.String,System.Boolean,System.Nullable{System.TimeSpan},System.Boolean,Acornima.EcmaVersion,Acornima.ExperimentalESFeatures)">
@@ -1538,12 +1571,12 @@
             <paramref name="pattern"/> cannot be converted to an equivalent <see cref="T:System.Text.RegularExpressions.Regex"/> (if <paramref name="throwIfNotAdaptable"/> is <see langword="true"/>).
             </exception>
         </member>
-        <member name="M:Acornima.Tokenizer.RegExpParser.CheckBracesBalance(Acornima.Helpers.ArrayList{Acornima.Tokenizer.RegExpCapturingGroup}@,System.Collections.Generic.Dictionary{System.String,System.String}@)">
+        <member name="M:Acornima.Tokenizer.RegExpParser.CheckBracesBalance">
             <summary>
             Ensures the braces are balanced in the regular expression pattern.
             </summary>
         </member>
-        <member name="M:Acornima.Tokenizer.RegExpParser.ParsePattern``1(``0,Acornima.Tokenizer.RegExpParser.ParsePatternContext@,Acornima.RegExpConversionError@)">
+        <member name="M:Acornima.Tokenizer.RegExpParser.ParsePattern``1(``0,Acornima.RegExpConversionError@)">
             <summary>
             Check the regular expression pattern for additional syntax errors and optionally build an adjusted pattern which
             implements the equivalent behavior in .NET, on top of the <see cref="F:System.Text.RegularExpressions.RegexOptions.ECMAScript"/> compatibility mode.
@@ -1557,9 +1590,9 @@
         <member name="P:Acornima.TokenizerOptions.EcmaVersion">
             <summary>
             Gets or sets the ECMAScript version to parse.
-            Must be either ES3, ES5, ES6 (or ES2015), ES7 (ES2016), ES8 (ES2017), ES9 (ES2018), ES10
-            (ES2019), ES11 (ES2020), ES12 (ES2021), ES13 (ES2022), ES14 (ES2023), or Latest
-            (the latest version the library supports). Defaults to <see cref="F:Acornima.EcmaVersion.Latest"/>.
+            Must be either ES3, ES5, ES6 (or ES2015), ES7 (ES2016), ES8 (ES2017), ES9 (ES2018),
+            ES10 (ES2019), ES11 (ES2020), ES12 (ES2021), ES13 (ES2022), ES14 (ES2023), ES15 (ES2024),
+            ES16 (ES2025), ES17 (ES2026) or Latest (the latest version the library supports).
             </summary>
             <remarks>
             This influences support for strict mode, the set of reserved words, and support
@@ -1604,7 +1637,7 @@
             Gets or sets an optional callback function which will be called whenever a token is read.
             </summary>
             <remarks>
-            It will be passed the parameters of the token as a <see cref="T:Acornima.Token"/> object,
+            Parameters of the token will be passed to the callback as a <see cref="T:Acornima.Token"/> object,
             in the same format as returned by <see cref="M:Acornima.Tokenizer.GetToken(Acornima.TokenizerContext@)"/>.<br/>
             Note that you should not call the tokenizer from the callback as that would corrupt its internal state.
             </remarks>
@@ -1614,7 +1647,17 @@
             Gets or sets an optional callback function which will be called whenever a comment is skipped.
             </summary>
             <remarks>
-            It will be passed the parameters of the comment as a <see cref="T:Acornima.Comment"/> object.
+            Parameters of the comment will be passed to the callback as a <see cref="T:Acornima.Comment"/> object.
+            </remarks>
+        </member>
+        <member name="P:Acornima.TokenizerOptions.OnRegExp">
+            <summary>
+            Gets or sets an optional callback function which will be called instead of the built-in parsing logic
+            whenever a regular expression is read.
+            </summary>
+            <remarks>
+            You can use the callback to hook into regular expression parsing, e.g., to parse regular expressions
+            into ASTs, convert them to .NET objects that can execute them or skip parsing altogether).
             </remarks>
         </member>
         <member name="M:System.StringExtensions.GetSequenceHashCode(System.ReadOnlySpan{System.Char})">
